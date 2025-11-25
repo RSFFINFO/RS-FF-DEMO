@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FF Manager - Vercel Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- Gaming Theme CSS --- */
+        :root {
+            --bg-main: #050505;
+            --bg-card: #12121a;
+            --accent: #00ff88; /* Cyberpunk Green */
+            --accent-hover: #00cc6a;
+            --danger: #ff2a6d;
+            --text-light: #ffffff;
+            --text-muted: #8892b0;
+            --neon-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: linear-gradient(to bottom, #050505, #0a0f1c);
+        }
+
+        .hidden { display: none !important; }
+
+        /* বাটন ডিজাইন */
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 4px;
+            font-weight: 700; cursor: pointer; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px;
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+        }
+        .btn-primary {
+            background: var(--accent); color: #000;
+            box-shadow: var(--neon-shadow);
+        }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 20px var(--accent); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #d01e55; box-shadow: 0 0 15px var(--danger); }
+
+        /* ইনপুট ফিল্ড */
+        input {
+            width: 100%; padding: 14px; margin-bottom: 15px;
+            background: #1c1c2e; border: 1px solid #2d2d42;
+            color: var(--text-light); border-radius: 4px; outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 5px var(--accent); }
+
+        /* --- লগইন স্টাইল --- */
+        #login-container {
+            background: var(--bg-card); padding: 50px; border-radius: 10px;
+            width: 90%; max-width: 420px; text-align: center;
+            border: 1px solid #2d2d42; box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+        }
+        #login-container h2 { color: var(--accent); margin-bottom: 10px; font-size: 2rem; }
+
+        /* --- ড্যাশবোর্ড স্টাইল --- */
+        #dashboard-container { width: 95%; max-width: 1200px; margin: 20px auto; }
+
+        .tabs {
+            display: flex; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; gap: 10px;
+        }
+        .tab-btn {
+            background: var(--bg-card); color: var(--text-muted); padding: 12px 25px;
+            border-radius: 4px; cursor: pointer; font-size: 1.1rem; font-weight: 600;
+            border: 1px solid #2d2d42; transition: 0.3s;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            color: #000; background: var(--accent); border-color: var(--accent);
+        }
+
+        /* প্রোফাইল কার্ড */
+        .profile-card {
+            background: var(--bg-card); border-radius: 10px; overflow: hidden;
+            border: 1px solid #2d2d42; margin-bottom: 30px;
+        }
+        .banner {
+            height: 150px; background: linear-gradient(90deg, #1cb5e0 0%, #000851 100%);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .profile-info { text-align: center; padding: 20px; position: relative; }
+        .avatar {
+            width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--accent);
+            background: #000; margin: -70px auto 15px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #fff;
+        }
+        .stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px; margin-top: 20px;
+        }
+        .stat-item { background: #1c1c2e; padding: 15px; border-radius: 5px; text-align: center; }
+        .stat-item strong { display: block; font-size: 1.4rem; color: var(--accent); }
+        .stat-item span { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* ফ্রেন্ড লিস্ট গ্রিড */
+        .grid-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .user-card {
+            background: var(--bg-card); padding: 15px; border-radius: 8px;
+            display: flex; align-items: center; border: 1px solid #2d2d42;
+            transition: 0.3s;
+        }
+        .user-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+        .card-avatar {
+            width: 50px; height: 50px; background: #333; border-radius: 50%;
+            margin-right: 15px; display: flex; align-items: center; justify-content: center;
+        }
+        .card-details { flex-grow: 1; }
+        .card-details h4 { color: #fff; font-size: 1.1rem; }
+        .card-details p { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* লোডার */
+        #loader {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid #333;
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="hidden">
+        <div class="spinner"></div>
+        <p style="margin-top: 15px; color: var(--accent);">Processing Data...</p>
+    </div>
+
+    <div id="login-container">
+        <h2> FF API LOGIN</h2>
+        <p style="color: var(--text-muted); margin-bottom: 25px;">Server: Vercel Cloud</p>
+        
+        <input type="text" id="login-uid" placeholder="Enter UID">
+        <input type="password" id="login-pass" placeholder="Enter Password">
+        
+        <button class="btn btn-primary" onclick="startLogin()" style="width: 100%;">
+            <i class="fas fa-plug"></i> Connect & Login
+        </button>
+    </div>
+
+    <div id="dashboard-container" class="hidden">
+        <div class="tabs">
+            <div class="tab-btn active" onclick="showTab('profile')"><i class="fas fa-user"></i> My Profile</div>
+            <div class="tab-btn" onclick="showTab('friends')"><i class="fas fa-users"></i> Friend List</div>
+            <div class="tab-btn" onclick="showTab('search')"><i class="fas fa-search"></i> Search User</div>
+            <div class="tab-btn" onclick="doLogout()" style="background: rgba(255, 42, 109, 0.1); color: var(--danger); border-color: var(--danger);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </div>
+        </div>
+
+        <div id="tab-profile">
+            <div id="profile-content"></div>
+        </div>
+
+        <div id="tab-friends" class="hidden">
+            <h3 style="color: var(--accent); margin-bottom: 20px;">Your Friends List</h3>
+            <div id="friends-grid" class="grid-container"></div>
+        </div>
+
+        <div id="tab-search" class="hidden">
+            <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+                <h3 style="margin-bottom: 15px;">Search & Add Friend</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="target-uid" placeholder="Target Player UID">
+                    <button class="btn btn-primary" onclick="searchUser()" style="height: 48px; margin-bottom: 15px;">
+                        Search
+                    </button>
+                </div>
+                <div id="search-result" style="margin-top: 30px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- API কনফিগারেশন (আপনার Vercel URL) ---
+        const API_URL = "https://rs-ff-friend-api-2-0.vercel.app/";
+        
+        let sessionData = { uid: null, pass: null };
+
+        // --- ইউটিলিটি ফাংশন ---
+        const getEl = (id) => document.getElementById(id);
+        const toggleLoader = (show) => getEl('loader').classList.toggle('hidden', !show);
+        
+        function showTab(tabName) {
+            ['profile', 'friends', 'search'].forEach(t => {
+                getEl(`tab-${t}`).classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            getEl(`tab-${tabName}`).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+
+        // --- ১. লগইন ফাংশন ---
+        async function startLogin() {
+            const uid = getEl('login-uid').value.trim();
+            const pass = getEl('login-pass').value.trim();
+
+            if (!uid || !pass) return alert("UID and Password required!");
+
+            toggleLoader(true);
+            try {
+                // আপনার API তে লগইন রিকোয়েস্ট পাঠানো হচ্ছে
+                const res = await fetch(`${API_URL}/login_info?uid=${uid}&password=${pass}`);
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    // লগইন সফল হলে ডাটা সেভ রাখা
+                    sessionData = { uid, pass };
+                    renderProfile(data.my_profile);
+                    renderFriends(data.friend_list.friends);
+
+                    getEl('login-container').classList.add('hidden');
+                    getEl('dashboard-container').classList.remove('hidden');
+                } else {
+                    alert("Login Failed: " + (data.message || "Unknown error"));
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Server Connection Error! Check console for details.");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // --- প্রোফাইল রেন্ডার ---
+        function renderProfile(p) {
+            getEl('profile-content').innerHTML = `
+                <div class="profile-card">
+                    <div class="banner">
+                        <h3 style="color: rgba(255,255,255,0.3)">BANNER ID: ${p.visuals.banner_id}</h3>
+                    </div>
+                    <div class="profile-info">
+                        <div class="avatar"><i class="fas fa-user-astronaut fa-2x"></i></div>
+                        <h1 style="color: var(--accent)">${p.nickname}</h1>
+                        <p style="color: var(--text-muted)">UID: ${p.uid} | Region: ${p.region}</p>
+                        
+                        <div class="stats">
+                            <div class="stat-item"><strong>${p.level}</strong><span>Level</span></div>
+                            <div class="stat-item"><strong>${p.likes}</strong><span>Likes</span></div>
+                            <div class="stat-item"><strong>${p.guild_info.name}</strong><span>Guild</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ফ্রেন্ডলিস্ট রেন্ডার ---
+        function renderFriends(friends) {
+            const container = getEl('friends-grid');
+            if (!friends || friends.length === 0) {
+                container.innerHTML = "<p>No friends found.</p>";
+                return;
+            }
+
+            container.innerHTML = friends.map(f => `
+                <div class="user-card">
+                    <div class="card-avatar">${f.avatar_id}</div>
+                    <div class="card-details">
+                        <h4>${f.nickname}</h4>
+                        <p>UID: ${f.uid} | Lvl: ${f.level}</p>
+                    </div>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" 
+                        onclick="removeFriend('${f.uid}', this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // --- ২. সার্চ ইউজার ---
+        async function searchUser() {
+            const tUid = getEl('target-uid').value.trim();
+            if (!tUid) return alert("Enter UID!");
+
+            toggleLoader(true);
+            try {
+                // Vercel URL ব্যবহার করে সার্চ
+                const url = `${API_URL}/search_user?my_uid=${sessionData.uid}&my_pass=${sessionData.pass}&target_uid=${tUid}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    const u = data.data;
+                    getEl('search-result').innerHTML = `
+                        <div class="profile-card" style="max-width: 400px; margin: auto;">
+                            <div class="profile-info">
+                                <h2 style="color: var(--accent)">${u.nickname}</h2>
+                                <p>UID: ${u.uid} | Level: ${u.level}</p>
+                                <p>Guild: ${u.guild_info.name}</p>
+                                <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" 
+                                    onclick="addFriend('${u.uid}')">
+                                    <i class="fas fa-user-plus"></i> Send Request
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    getEl('search-result').innerHTML = `<p style="color: var(--danger)">User not found!</p>`;
+                }
+            } catch (e) {
+                alert("Search Error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // --- ৩. ফ্রেন্ড অ্যাড করা ---
+        async function addFriend(targetUid) {
+            if(!confirm("Send Friend Request?")) return;
+            
+            toggleLoader(true);
+            try {
+                const url = `${API_URL}/add_friend?my_uid=${sessionData.uid}&my_pass=${sessionData.pass}&target_uid=${targetUid}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                alert(data.message || "Request Sent!");
+            } catch (e) { alert("Error sending request"); }
+            finally { toggleLoader(false); }
+        }
+
+        // --- ৪. ফ্রেন্ড রিমুভ করা ---
+        async function removeFriend(targetUid, btn) {
+            if(!confirm("Are you sure you want to remove this friend?")) return;
+
+            btn.innerHTML = '...';
+            try {
+                const url = `${API_URL}/remove_friend?my_uid=${sessionData.uid}&my_pass=${sessionData.pass}&target_uid=${targetUid}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    btn.closest('.user-card').remove();
+                } else {
+                    alert("Failed: " + data.message);
+                    btn.innerHTML = '<i class="fas fa-trash"></i>';
+                }
+            } catch (e) {
+                alert("Error removing friend");
+                btn.innerHTML = '<i class="fas fa-trash"></i>';
+            }
+        }
+
+        function doLogout() {
+            sessionData = {};
+            location.reload();
+        }
+    </script>
+</body>
+</html>
