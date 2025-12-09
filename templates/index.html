@@ -1,1 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FF Friend Manager</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #1e1e1e;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 127, 0.2);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 20px; color: #00ff7f; }
+        
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #ccc; }
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background: #2c2c2c;
+            color: white;
+            box-sizing: border-box;
+        }
+        input:focus { outline: none; border-color: #00ff7f; }
 
+        .preview-section {
+            margin-top: 20px;
+            display: none; /* প্রথমে হাইড থাকবে */
+            flex-direction: column;
+            align-items: center;
+            background: #252525;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        /* Banner & Buttons Layout */
+        .profile-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        /* Banner Image Style */
+        #bannerImg {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            border: 2px solid #444;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            flex: 1;
+        }
+        
+        .btn-check {
+            background: #007bff; color: white; width: 100%; margin-top: 10px;
+        }
+        .btn-add {
+            background: #00ff7f; color: black;
+        }
+        .btn-remove {
+            background: #ff4d4d; color: white;
+        }
+        
+        button:hover { opacity: 0.8; }
+        
+        #statusMsg {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>FF Friend Manager</h2>
+    
+    <div class="input-group">
+        <label>Your UID:</label>
+        <input type="text" id="myUid" placeholder="Enter your UID">
+    </div>
+    <div class="input-group">
+        <label>Password / Token:</label>
+        <input type="text" id="password" placeholder="Enter Password">
+    </div>
+    
+    <hr style="border-color: #333; margin: 20px 0;">
+    
+    <div class="input-group">
+        <label>Target Player UID:</label>
+        <input type="text" id="targetUid" placeholder="Target UID">
+    </div>
+
+    <button class="btn-check" onclick="loadProfile()">Check Profile</button>
+
+    <div class="preview-section" id="previewSection">
+        <div class="profile-area">
+            <img id="bannerImg" src="" alt="Banner Loading...">
+            
+            <div class="action-buttons">
+                <button class="btn-add" onclick="performAction('add')">Add Friend</button>
+                <button class="btn-remove" onclick="performAction('remove')">Remove Friend</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusMsg"></div>
+</div>
+
+<script>
+    function loadProfile() {
+        const target = document.getElementById('targetUid').value;
+        const bannerImg = document.getElementById('bannerImg');
+        const section = document.getElementById('previewSection');
+        
+        if (!target) {
+            alert("Please enter Target UID");
+            return;
+        }
+
+        // Show section
+        section.style.display = 'flex';
+        // Set Banner URL
+        bannerImg.src = `https://profile-banner-api.vercel.app/banner?uid=${target}&region=BD`;
+    }
+
+    async function performAction(actionType) {
+        const myUid = document.getElementById('myUid').value;
+        const password = document.getElementById('password').value;
+        const targetUid = document.getElementById('targetUid').value;
+        const statusDiv = document.getElementById('statusMsg');
+
+        if (!myUid || !password || !targetUid) {
+            statusDiv.innerHTML = "<span style='color:orange'>Please fill all fields!</span>";
+            return;
+        }
+
+        statusDiv.innerHTML = "<span style='color:cyan'>Processing...</span>";
+
+        try {
+            const response = await fetch('/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    my_uid: myUid,
+                    password: password,
+                    target_uid: targetUid,
+                    action: actionType
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.status === "success") {
+                statusDiv.innerHTML = `<span style='color:#00ff7f'>Success: ${result.response}</span>`;
+            } else {
+                statusDiv.innerHTML = `<span style='color:#ff4d4d'>Error: ${result.message}</span>`;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `<span style='color:red'>Request Failed!</span>`;
+        }
+    }
+</script>
+
+</body>
+</html>
