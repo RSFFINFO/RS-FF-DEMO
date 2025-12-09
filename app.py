@@ -3,9 +3,10 @@ import requests
 
 app = Flask(__name__)
 
-# ফ্রেন্ড রিকোয়েস্ট API গুলো
+# API URLs
 ADD_API = "https://rs-ff-friend-api.vercel.app/add_friend"
 REMOVE_API = "https://rs-ff-friend-api.vercel.app/remove_friend"
+BIO_API = "https://add-bio-api.vercel.app/bio_upload"
 
 @app.route('/')
 def home():
@@ -14,36 +15,60 @@ def home():
 @app.route('/execute', methods=['POST'])
 def execute_action():
     data = request.json
+    
+    # Common fields
     my_uid = data.get('my_uid')
     password = data.get('password')
-    target_uid = data.get('target_uid')
-    action = data.get('action') # 'add' or 'remove'
+    action = data.get('action') # 'add', 'remove', or 'bio'
 
-    if not all([my_uid, password, target_uid, action]):
-        return jsonify({"status": "error", "message": "Missing fields"}), 400
+    if not my_uid or not password:
+        return jsonify({"status": "error", "message": "UID and Password required"}), 400
 
-    # API URL সিলেক্ট করা
-    target_url = ADD_API if action == "add" else REMOVE_API
-    
-    # প্যারামিটার সেট করা
-    params = {
-        "uid": my_uid,
-        "password": password,
-        "player_id": target_uid
-    }
-
-    try:
-        # এক্সটারনাল API কল করা
-        response = requests.get(target_url, params=params)
-        
-        # রেসপন্স চেক করা
-        if response.status_code == 200:
-            return jsonify({"status": "success", "response": response.text})
-        else:
-            return jsonify({"status": "error", "message": "API Error", "details": response.text})
+    # --- Action: Friend Request (Add/Remove) ---
+    if action in ['add', 'remove']:
+        target_uid = data.get('target_uid')
+        if not target_uid:
+            return jsonify({"status": "error", "message": "Target UID required for friend request"}), 400
             
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+        target_url = ADD_API if action == "add" else REMOVE_API
+        params = {
+            "uid": my_uid,
+            "password": password,
+            "player_id": target_uid
+        }
+        
+        try:
+            response = requests.get(target_url, params=params)
+            if response.status_code == 200:
+                return jsonify({"status": "success", "response": response.text})
+            else:
+                return jsonify({"status": "error", "message": "Friend API Error", "details": response.text})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)})
+
+    # --- Action: Bio Update ---
+    elif action == 'bio':
+        bio_text = data.get('bio_text')
+        if not bio_text:
+            return jsonify({"status": "error", "message": "Bio text is empty"}), 400
+
+        # Bio API Parameters
+        params = {
+            "uid": my_uid,
+            "pass": password, # Note: API parameter is 'pass'
+            "bio": bio_text
+        }
+        
+        try:
+            response = requests.get(BIO_API, params=params)
+            if response.status_code == 200:
+                return jsonify({"status": "success", "response": response.text})
+            else:
+                return jsonify({"status": "error", "message": "Bio API Error", "details": response.text})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)})
+
+    return jsonify({"status": "error", "message": "Invalid Action"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
