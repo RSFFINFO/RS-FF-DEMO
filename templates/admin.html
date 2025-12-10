@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #121212; color: white; overflow-x: hidden; }
+        .sidebar {
+            height: 100vh; width: 250px; position: fixed; top: 0; left: -250px;
+            background-color: #1f1f1f; transition: 0.3s; padding-top: 60px; z-index: 1000;
+        }
+        .sidebar.active { left: 0; }
+        .sidebar a { padding: 15px; text-decoration: none; font-size: 18px; color: #ccc; display: block; }
+        .sidebar a:hover { color: #fff; background: #333; }
+        .content { transition: 0.3s; padding: 20px; }
+        .header { display: flex; align-items: center; padding: 15px; background: #1f1f1f; border-bottom: 1px solid #333; }
+        .menu-btn { font-size: 24px; cursor: pointer; margin-right: 20px; color: #00ff7f; }
+        
+        /* Stats Cards */
+        .stat-card { background: #252525; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 20px; border: 1px solid #333; }
+        .stat-num { font-size: 2rem; font-weight: bold; }
+        .c-total { color: #00d2ff; }
+        .c-online { color: #00ff7f; }
+        .c-offline { color: #ffcc00; }
+        .c-ban { color: #ff4d4d; }
+
+        /* Form */
+        .add-box { background: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #444; max-width: 500px; margin: auto; }
+        input { background: #333; border: 1px solid #555; color: white; }
+        input:focus { background: #444; color: white; border-color: #00ff7f; box-shadow: none; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <h4 class="text-center text-white mb-4">Admin Panel</h4>
+    <a href="#"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+    <a href="#" onclick="showAddSection()"><i class="fas fa-user-plus me-2"></i> Add Account</a>
+    <a href="/"><i class="fas fa-globe me-2"></i> Visit User Panel</a>
+</div>
+
+<div class="content" id="mainContent">
+    <div class="header">
+        <i class="fas fa-bars menu-btn" onclick="toggleSidebar()"></i>
+        <h4 class="m-0">Dashboard</h4>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-3 col-6"><div class="stat-card"><h3 class="stat-num c-total" id="total">0</h3><p>Total Accounts</p></div></div>
+        <div class="col-md-3 col-6"><div class="stat-card"><h3 class="stat-num c-online" id="online">0</h3><p>Online</p></div></div>
+        <div class="col-md-3 col-6"><div class="stat-card"><h3 class="stat-num c-offline" id="offline">0</h3><p>Offline</p></div></div>
+        <div class="col-md-3 col-6"><div class="stat-card"><h3 class="stat-num c-ban" id="banned">0</h3><p>Banned</p></div></div>
+    </div>
+
+    <div class="add-box mt-5">
+        <h5 class="text-center mb-3 text-success">Add New Account</h5>
+        <div class="mb-3"><input type="text" id="uid" class="form-control" placeholder="Account UID"></div>
+        <div class="mb-3"><input type="text" id="pass" class="form-control" placeholder="Password / Token"></div>
+        <div class="mb-3"><input type="text" id="name" class="form-control" placeholder="Name (Optional)"></div>
+        <button class="btn btn-success w-100" onclick="addAccount()">Add Account</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('active');
+    }
+
+    // Fetch Stats
+    async function loadStats() {
+        let res = await fetch('/api/stats');
+        let data = await res.json();
+        document.getElementById('total').innerText = data.total;
+        document.getElementById('online').innerText = data.online;
+        document.getElementById('offline').innerText = data.offline;
+        document.getElementById('banned').innerText = data.banned;
+    }
+
+    // Add Account
+    async function addAccount() {
+        let uid = document.getElementById('uid').value;
+        let pass = document.getElementById('pass').value;
+        let name = document.getElementById('name').value;
+
+        if(!uid || !pass) return Swal.fire('Error', 'UID & Password Required', 'error');
+
+        let res = await fetch('/api/add_account', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({uid, password: pass, name})
+        });
+
+        let result = await res.json();
+        if(result.status === 'success'){
+            Swal.fire('Success', 'Account Added!', 'success');
+            document.getElementById('uid').value = '';
+            document.getElementById('pass').value = '';
+            loadStats();
+        } else {
+            Swal.fire('Failed', result.message, 'error');
+        }
+    }
+
+    loadStats();
+</script>
+</body>
+</html>
