@@ -6,46 +6,45 @@ import requests
 app = Flask(__name__)
 app.secret_key = "RS_SECRET_KEY_@123"
 
-# --- কনফিগারেশন ---
+# --- কনফিগারেশন (অবশ্যই পূরণ করবেন) ---
+# JSONBin.io থেকে পাওয়া তথ্য এখানে দিন
+BIN_ID = "69395d2e43b1c97be9e44e5a"      # উদাহরণ: "675a1b2..."
+API_KEY = "$2a$10$9fvgt32SGGgZVT7bJpe2sOscoGzsgpZhY1MZROV25krtWogW4Aqji"  # উদাহরণ: "$2a$10$..."
+
 ADMIN_EMAIL = "admin@rs.com"
 ADMIN_PASS = "rs1234"
-DB_FILE = "accounts.json"
-HISTORY_FILE = "history.json"
 
 # API URLs
 ADD_API = "https://rs-ff-friend-api.vercel.app/add_friend"
 REMOVE_API = "https://rs-ff-friend-api.vercel.app/remove_friend"
-INFO_API = "https://rs-ff-info-sn5m.vercel.app/get" # প্লেয়ার নাম জানার জন্য
+INFO_API = "https://rs-ff-info-sn5m.vercel.app/get"
 
-# --- ডাটাবেস ফাংশন ---
-def load_db():
-    if not os.path.exists(DB_FILE):
-        return []
+# --- ডাটাবেস ফাংশন (JSONBin) ---
+def get_db():
+    url = f"https://api.jsonbin.io/v3/b/{BIN_ID}/latest"
+    headers = {"X-Master-Key": API_KEY}
     try:
-        with open(DB_FILE, 'r') as f:
-            data = json.load(f)
-            return data if isinstance(data, list) else [] # লিস্ট কিনা নিশ্চিত করা
+        resp = requests.get(url, headers=headers)
+        if resp.status_code == 200:
+            return resp.json().get("record", {"accounts": [], "history": {}})
+        return {"accounts": [], "history": {}}
     except:
-        return []
+        return {"accounts": [], "history": {}}
 
-def save_db(data):
-    with open(DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
-
-def load_history():
-    if not os.path.exists(HISTORY_FILE):
-        return {}
+def update_db(data):
+    url = f"https://api.jsonbin.io/v3/b/{BIN_ID}"
+    headers = {
+        "X-Master-Key": API_KEY,
+        "Content-Type": "application/json"
+    }
     try:
-        with open(HISTORY_FILE, 'r') as f:
-            return json.load(f)
+        requests.put(url, json=data, headers=headers)
+        return True
     except:
-        return {}
-
-def save_history(data):
-    with open(HISTORY_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+        return False
 
 # --- HTML TEMPLATES ---
+# (ডিজাইন আগের মতোই আছে, শুধু লজিক বদলানো হয়েছে)
 
 LOGIN_HTML = """
 <!DOCTYPE html>
@@ -284,7 +283,7 @@ ADMIN_PANEL_HTML = """
     async function addAccount() {
         let uid = document.getElementById('uid').value;
         let pass = document.getElementById('pass').value;
-        let name = document.getElementById('name').value; // Name can be empty
+        let name = document.getElementById('name').value;
 
         if(!uid || !pass) return Swal.fire('Error', 'UID & Password Required!', 'error');
 
@@ -296,7 +295,7 @@ ADMIN_PANEL_HTML = """
         });
 
         if(res.ok) {
-            Swal.fire('Saved!', 'Account added successfully', 'success');
+            Swal.fire('Saved!', 'Account added to cloud', 'success');
             document.getElementById('uid').value = '';
             document.getElementById('pass').value = '';
             document.getElementById('name').value = '';
@@ -326,7 +325,7 @@ ADMIN_PANEL_HTML = """
 def home(): return render_template_string(USER_PANEL_HTML)
 
 @app.route('/guild-bot')
-def guild_bot(): return render_template_string("""<h1 style='color:white;text-align:center;'>Guild Bot Coming Soon</h1>""", )
+def guild_bot(): return render_template_string("""<h1 style='color:white;text-align:center;'>Guild Bot Coming Soon</h1>""")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -357,44 +356,55 @@ def api_add_account():
     password = data.get('password')
     name = data.get('name')
 
-    accounts = load_db()
+    db_data = get_db()
+    accounts = db_data.get("accounts", [])
     
-    # ডুপ্লিকেট চেক
+    # Check duplicate
     for acc in accounts:
         if acc['uid'] == uid:
             return jsonify({"status": "error", "message": "UID already exists!"}), 400
 
-    # নাম না দিলে অটোমেটিক API থেকে বের করা হবে
+    # Auto Name Fetch
     if not name or name.strip() == "":
         try:
-            # Info API কল করা হচ্ছে
             resp = requests.get(f"{INFO_API}?uid={uid}&region=BD")
             if resp.status_code == 200:
                 p_data = resp.json()
-                # API এর রেসপন্স ফরম্যাট অনুযায়ী ডাটা বের করা
                 info = p_data.get('AccountInfo', p_data)
                 name = info.get('AccountName') or info.get('nickname') or f"User-{uid}"
             else:
-                name = f"User-{uid}" # API ফেইল করলে ডিফল্ট নাম
+                name = f"User-{uid}"
         except:
-            name = f"User-{uid}" # কোনো এরর হলে
+            name = f"User-{uid}"
 
     accounts.append({"uid": uid, "password": password, "name": name})
-    save_db(accounts)
-    return jsonify({"status": "success"})
+    db_data["accounts"] = accounts
+    
+    if update_db(db_data):
+        return jsonify({"status": "success"})
+    else:
+        return jsonify({"status": "error", "message": "Failed to save to cloud"}), 500
 
 @app.route('/api/delete_account', methods=['POST'])
 def api_delete_account():
     if not session.get('logged_in'): return jsonify({"message": "Unauthorized"}), 403
     uid = request.json.get('uid')
-    accounts = [acc for acc in load_db() if acc['uid'] != str(uid)]
-    save_db(accounts)
+    
+    db_data = get_db()
+    accounts = db_data.get("accounts", [])
+    
+    new_accounts = [acc for acc in accounts if acc['uid'] != str(uid)]
+    db_data["accounts"] = new_accounts
+    
+    update_db(db_data)
     return jsonify({"status": "success"})
 
 @app.route('/api/get_accounts_with_stats')
 def get_accounts_stats():
-    accounts = load_db()
-    history = load_history()
+    db_data = get_db()
+    accounts = db_data.get("accounts", [])
+    history = db_data.get("history", {})
+    
     result = []
     for acc in accounts:
         sent_list = history.get(acc['uid'], [])
@@ -408,25 +418,28 @@ def execute_action():
     target_uid = str(data.get('target_uid'))
     action = data.get('action')
 
-    accounts = load_db()
+    db_data = get_db()
+    accounts = db_data.get("accounts", [])
+    
     sender_acc = next((a for a in accounts if a['uid'] == sender_uid), None)
-
     if not sender_acc: return jsonify({"status": "error", "message": "Sender account missing!"}), 400
 
     target_url = ADD_API if action == "add" else REMOVE_API
     try:
         requests.get(target_url, params={"uid": sender_acc['uid'], "password": sender_acc['password'], "player_id": target_uid})
+        
         if action == "add":
-            history = load_history()
+            history = db_data.get("history", {})
             if sender_uid not in history: history[sender_uid] = []
+            
             if target_uid not in history[sender_uid]:
                 history[sender_uid].append(target_uid)
-                save_history(history)
+                db_data["history"] = history
+                update_db(db_data)
+                
         return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == '__main__':
-    if not os.path.exists(DB_FILE): save_db([])
-    if not os.path.exists(HISTORY_FILE): save_history({})
     app.run(debug=True, port=5000)
