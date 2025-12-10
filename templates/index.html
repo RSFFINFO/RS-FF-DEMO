@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool User Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #161b22;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 1px solid #30363d;
+        }
+        h2 { text-align: center; color: #58a6ff; margin-bottom: 20px; }
+
+        /* Inputs */
+        select, input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: white;
+            box-sizing: border-box;
+        }
+        select:focus, input:focus { border-color: #58a6ff; outline: none; }
+
+        /* Profile Display Area */
+        .profile-card {
+            display: none; /* Initially hidden */
+            background: #21262d;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #30363d;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* Banner Image */
+        .banner-img {
+            width: 70%;
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+
+        /* Action Buttons (Icons) */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+        }
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: white;
+        }
+        .btn-add { background: #238636; box-shadow: 0 0 10px rgba(35, 134, 54, 0.5); }
+        .btn-add:hover { background: #2ea043; transform: scale(1.1); }
+        
+        .btn-reject { background: #da3633; box-shadow: 0 0 10px rgba(218, 54, 51, 0.5); }
+        .btn-reject:hover { background: #f85149; transform: scale(1.1); }
+
+        .btn-search {
+            width: 100%;
+            padding: 12px;
+            background: #1f6feb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2><i class="fas fa-robot"></i> Tool User Panel</h2>
+
+    <label>Select Sender Account:</label>
+    <select id="senderAccount">
+        <option value="">-- Choose Account --</option>
+        {% for acc in accounts %}
+        <option value="{{ acc.uid }}">{{ acc.name }} ({{ acc.uid }})</option>
+        {% endfor %}
+    </select>
+
+    <label>Target Player UID:</label>
+    <input type="text" id="targetUid" placeholder="Enter Target UID">
+    
+    <button class="btn-search" onclick="showProfile()">Check Profile</button>
+
+    <div class="profile-card" id="profileCard">
+        <img src="" id="bannerImg" class="banner-img" alt="Banner">
+        
+        <div class="actions">
+            <button class="icon-btn btn-add" onclick="sendRequest('add')" title="Send Request">
+                <i class="fas fa-user-plus"></i>
+            </button>
+            <button class="icon-btn btn-reject" onclick="sendRequest('remove')" title="Remove/Reject">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function showProfile() {
+        let uid = document.getElementById('targetUid').value;
+        if(!uid) return Swal.fire('Oops', 'Please enter Target UID', 'warning');
+
+        let img = document.getElementById('bannerImg');
+        let card = document.getElementById('profileCard');
+
+        // Load Banner
+        img.src = `https://profile-banner-api.vercel.app/banner?uid=${uid}&region=BD`;
+        
+        // Show the section with flex display
+        card.style.display = 'flex';
+    }
+
+    async function sendRequest(action) {
+        let sender = document.getElementById('senderAccount').value;
+        let target = document.getElementById('targetUid').value;
+
+        if(!sender) return Swal.fire('Error', 'Please select a Sender Account first!', 'error');
+        if(!target) return Swal.fire('Error', 'Target UID Missing', 'error');
+
+        // Show Loading
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Sending request to server',
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => { Swal.showLoading() }
+        });
+
+        try {
+            let res = await fetch('/api/execute', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ sender_uid: sender, target_uid: target, action: action })
+            });
+
+            let data = await res.json();
+
+            if(data.status === 'success') {
+                Swal.fire({
+                    title: 'Success!',
+                    text: action === 'add' ? 'Friend Request Sent Successfully!' : 'Player Removed Successfully!',
+                    icon: 'success',
+                    background: '#161b22',
+                    color: '#fff',
+                    confirmButtonColor: '#238636'
+                });
+            } else {
+                Swal.fire('Failed', data.message, 'error');
+            }
+        } catch(e) {
+            Swal.fire('Error', 'Server Connection Error', 'error');
+        }
+    }
+</script>
+
+</body>
+</html>
