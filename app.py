@@ -9,7 +9,7 @@ app.secret_key = "RS_SECRET_KEY_@123"
 # --- কনফিগারেশন (অবশ্যই পূরণ করবেন) ---
 # JSONBin.io থেকে পাওয়া তথ্য এখানে দিন
 BIN_ID = "69395d2e43b1c97be9e44e5a"      # উদাহরণ: "675a1b2..."
-API_KEY = "$2a$10$9fvgt32SGGgZVT7bJpe2sOscoGzsgpZhY1MZROV25krtWogW4Aqji"  # উদাহরণ: "$2a$10$..."
+API_KEY = "$2a$10$zg./z2P1uuwx2JTa45vwJeBjF7NMsyeAd2.C/5s3Tbbd7DMca76xi"
 
 ADMIN_EMAIL = "admin@rs.com"
 ADMIN_PASS = "rs1234"
